@@ -2,7 +2,7 @@ name: 更新 Clash/CloudflareCIDR.list
 
 on:
   schedule:
-    - cron: '5 * */5 * *'
+    - cron: '5 */5 * * *'  # 修复cron表达式：每5天运行一次
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -11,33 +11,59 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4  # 升级到v4版本
+      with:
+        persist-credentials: false  # 便于后续使用token推送
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5  # 升级到v5版本
       with:
         python-version: '3.x'  # 选择 Python 版本
 
     - name: Install requests library
       run: |
         pip install requests
+        # 如果需要其他依赖，可以在这里添加
 
-    - name: Download File
-      run: python CloudflareCIDR-main.py  # 这里 CloudflareCIDR-main.py 处理文件
+    - name: Run Python script
+      run: python CloudflareCIDR-main.py
+      env:
+        # 如果脚本需要环境变量，可以在这里设置
+        PYTHONUNBUFFERED: 1  # 确保实时输出日志
 
     - name: Check for changes and commit
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .
+        # 配置git用户
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         
         # 检查是否有变更
+        if git diff --quiet && git diff --cached --quiet; then
+          echo "没有文件变更，跳过提交"
+          exit 0
+        fi
+        
+        # 添加变更文件
+        git add -A
+        
+        # 再次检查是否有变更（git add后）
         if git diff --cached --quiet; then
           echo "没有文件变更，跳过提交"
-        else
-          echo "检测到文件变更，开始提交"
-          git commit -m "Downloaded file on $(date "+%Y/%m/%d %H:%M:%S")"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{github.repository}}.git
-          git push
-          echo "提交完成"
+          exit 0
         fi
+        
+        # 提交变更
+        echo "检测到文件变更，开始提交"
+        git commit -m "chore: update Cloudflare CIDR list on $(date '+%Y-%m-%d %H:%M:%S')"
+        
+        # 推送变更
+        git push origin HEAD:${{ github.ref_name }}
+        echo "提交完成"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Handle errors
+      if: failure()  # 如果任何步骤失败，显示错误信息
+      run: |
+        echo "工作流执行失败，请检查日志"
+        exit 1
