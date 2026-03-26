@@ -12,24 +12,65 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v4  # 升级到v4版本
+        with:
+          persist-credentials: false  # 便于后续使用token推送
 
       - name: 下载 Adobe 规则
         run: |
-          #curl -L https://raw.githubusercontent.com/ignaciocastro/adobe-is-dumb/main/list.txt -o adobe.list
+          # 下载规则文件
+          echo "正在下载 Adobe 规则..."
           curl -L https://a.dove.isdumb.one/list.txt -o adobe.list
-          sed -i 's/0\.0\.0\.0 /DOMAIN,/g' adobe.list
-          # 检查Clash文件夹是否存在，如果不存在则创建
-          if [ ! -d "Clash" ]; then
-            mkdir Clash
+          
+          # 检查下载是否成功
+          if [ ! -f "adobe.list" ] || [ ! -s "adobe.list" ]; then
+            echo "错误: 下载失败或文件为空"
+            exit 1
           fi
+          
+          # 显示文件行数（用于调试）
+          echo "下载完成，共 $(wc -l < adobe.list) 行"
+          
+          # 转换格式：将 0.0.0.0 替换为 DOMAIN,
+          sed -i 's/^0\.0\.0\.0 /DOMAIN-SUFFIX,/g' adobe.list
+          
+          # 清理空行和注释行（可选）
+          sed -i '/^$/d' adobe.list
+          sed -i '/^#/d' adobe.list
+          
+          # 检查Clash文件夹是否存在，如果不存在则创建
+          mkdir -p Clash  # -p 参数会递归创建目录，如果目录已存在也不会报错
+          
+          # 移动文件到Clash目录
           mv adobe.list Clash/
+          echo "文件已保存到 Clash/adobe.list"
 
-      - name: 更新adobe.list
+      - name: 检查变更并提交
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          # 配置git用户
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # 添加文件到暂存区
           git add Clash/adobe.list
-          git commit -m "Downloaded file on $(date "+%Y/%m/%d %H:%M:%S")"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{github.repository}}.git
-          git push
+          
+          # 检查是否有变更
+          if git diff --cached --quiet; then
+            echo "没有文件变更，跳过提交"
+            exit 0
+          fi
+          
+          # 提交变更
+          echo "检测到文件变更，开始提交"
+          git commit -m "chore: update Adobe list on $(date '+%Y-%m-%d %H:%M:%S')"
+          
+          # 推送到当前分支
+          git push origin HEAD:${{ github.ref_name }}
+          echo "提交完成"
+
+      - name: 错误处理
+        if: failure()  # 如果任何步骤失败，显示错误信息
+        run: |
+          echo "❌ 工作流执行失败，请检查日志"
+          exit 1
