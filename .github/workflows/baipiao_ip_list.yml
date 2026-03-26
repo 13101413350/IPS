@@ -1,8 +1,9 @@
 name: 更新白嫖IP库
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 21 * * *'  # 每天的8点、16点执行（UTC时间）
+    - cron: '30 21 * * *'  # 每天的21:30 UTC（北京时间次日5:30）
 
 permissions:
   contents: write
@@ -13,6 +14,8 @@ jobs:
     steps:
       - name: 检出代码仓库
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false  # 便于后续使用token推送
 
       - name: Check PROXYIP_URL variable
         run: |
@@ -32,39 +35,74 @@ jobs:
       - name: Check URL status
         id: check_url
         run: |
-          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PROXYIP_URL")
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.PROXYIP_URL }}")
           echo "Status code: $STATUS_CODE"
           if [ "$STATUS_CODE" = "200" ]; then
             echo "url_status_ok=true" >> $GITHUB_OUTPUT
-            echo "URL 响应正常，状态码为 200"
+            echo "✅ URL 响应正常，状态码为 200"
           else
             echo "url_status_ok=false" >> $GITHUB_OUTPUT
-            echo "URL 响应异常，状态码为 $STATUS_CODE，将跳过后续步骤"
+            echo "❌ URL 响应异常，状态码为 $STATUS_CODE，将跳过后续步骤"
           fi
 
       - name: Download
         if: steps.check_url.outputs.url_status_ok == 'true'
         run: |
-          curl -L "$PROXYIP_URL" -o baipiao.txt
+          echo "正在下载IP库文件..."
+          curl -L --connect-timeout 30 --max-time 60 "${{ vars.PROXYIP_URL }}" -o baipiao.txt
+          
+          # 检查下载是否成功
+          if [ $? -ne 0 ] || [ ! -f baipiao.txt ]; then
+            echo "❌ 下载失败"
+            exit 1
+          fi
+          
+          # 检查文件是否为空
+          if [ ! -s baipiao.txt ]; then
+            echo "❌ 下载的文件为空"
+            exit 1
+          fi
+          
+          echo "✅ 下载成功，文件大小: $(stat -c%s baipiao.txt 2>/dev/null || stat -f%z baipiao.txt 2>/dev/null) 字节"
+          echo "文件行数: $(wc -l < baipiao.txt)"
 
       - name: 提交更新的IP库文件
         if: steps.check_url.outputs.url_status_ok == 'true'
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          # 配置git用户
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           
-          # 检查文件是否有变化
-          if [ ! -f baipiao.txt ] || [ ! -s baipiao.txt ]; then
-            echo "baipiao.txt 文件不存在或为空，跳过提交"
+          # 检查文件是否存在且非空
+          if [ ! -f baipiao.txt ]; then
+            echo "❌ baipiao.txt 文件不存在，跳过提交"
             exit 0
           fi
           
-          if git diff --quiet baipiao.txt 2>/dev/null; then
-            echo "baipiao.txt 文件没有变化，跳过提交"
-          else
-            echo "检测到 baipiao.txt 文件有变化，开始提交"
-            git add baipiao.txt
-            git commit -m "更新IP库文件 $(date '+%Y-%m-%d %H:%M:%S')"
-            git push
-            echo "提交完成"
+          if [ ! -s baipiao.txt ]; then
+            echo "⚠️ baipiao.txt 文件为空，跳过提交"
+            exit 0
           fi
+          
+          # 添加文件到暂存区
+          git add baipiao.txt
+          
+          # 检查是否有变更
+          if git diff --cached --quiet; then
+            echo "📝 baipiao.txt 文件没有变化，跳过提交"
+            exit 0
+          fi
+          
+          # 提交变更
+          echo "📝 检测到 baipiao.txt 文件有变化，开始提交"
+          git commit -m "chore: update IP list on $(date '+%Y-%m-%d %H:%M:%S')"
+          
+          # 推送到当前分支
+          git push origin HEAD:${{ github.ref_name }}
+          echo "✅ 提交完成"
+
+      - name: 错误处理
+        if: failure()
+        run: |
+          echo "❌ 工作流执行失败，请检查日志"
+          exit 1
