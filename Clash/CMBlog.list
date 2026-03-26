@@ -1,6 +1,9 @@
-DOMAIN,blog.090227.xyz
-DOMAIN,blog.cmliussss.com
-DOMAIN,chinaip.090227.xyz
+DOMAIN,*.105201.xyz
+DOMAIN,cf.105201.xyz
+DOMAIN,cu.105201.xyz
+DOMAIN,ct.105201.xyz
+DOMAIN,cmcc.105201.xyz
+DOMAIN,cdn.105201.xyz
 IP-CIDR,8.8.8.0/24,no-resolve
 IP-CIDR,8.8.4.0/24,no-resolve
 IP-CIDR,101.101.101.0/24,no-resolve
