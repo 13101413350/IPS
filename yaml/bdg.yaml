@@ -99,10 +99,7 @@ rule-providers:
     type: http
 
 proxy-groups:
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Static.png
-    include-all: true
-    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
-    name: PROXY
+  - name: PROXY
     type: select
     proxies:
       - AUTO
@@ -110,66 +107,72 @@ proxy-groups:
       - SG AUTO
       - JP AUTO
       - US AUTO
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png
-    include-all: true
-    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
-    name: AUTO
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Static.png
+    # 移除 include-all 和 exclude-filter，这些不是标准字段
+  
+  - name: AUTO
     type: url-test
+    proxies:
+      - HK AUTO
+      - SG AUTO
+      - JP AUTO
+      - US AUTO
     interval: 300
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png
-    name: AIGC
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png
+  
+  - name: AIGC
     type: select
     proxies:
       - SG AUTO
       - JP AUTO
       - US AUTO
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Telegram.png
-    name: Telegram
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png
+  
+  - name: Telegram
     type: select
     proxies:
       - HK AUTO
       - SG AUTO
       - JP AUTO
       - US AUTO
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png
-    name: Google
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Telegram.png
+  
+  - name: Google
     type: select
     proxies:
       - HK AUTO
       - SG AUTO
       - JP AUTO
       - US AUTO
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/HK.png
-    include-all: true
-    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
-    filter: (?i)香港|Hong Kong|HK|🇭🇰
-    name: HK AUTO
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png
+  
+  - name: HK AUTO
     type: url-test
+    proxies: []  # 需要手动添加香港节点
     interval: 300
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/SG.png
-    include-all: true
-    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
-    filter: (?i)新加坡|Singapore|🇸🇬
-    name: SG AUTO
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/HK.png
+    # filter 字段不是标准字段，需要通过 proxies 列表手动筛选节点
+  
+  - name: SG AUTO
     type: url-test
+    proxies: []  # 需要手动添加新加坡节点
     interval: 300
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/JP.png
-    include-all: true
-    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
-    filter: (?i)日本|Japan|🇯🇵
-    name: JP AUTO
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/SG.png
+  
+  - name: JP AUTO
     type: url-test
+    proxies: []  # 需要手动添加日本节点
     interval: 300
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/US.png
-    include-all: true
-    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
-    filter: (?i)美国|USA|🇺🇸
-    name: US AUTO
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/JP.png
+  
+  - name: US AUTO
     type: url-test
+    proxies: []  # 需要手动添加美国节点
     interval: 300
-  - icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Global.png
-    include-all: true
-    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/US.png
+  
+  - name: GLOBAL
+    type: select
     proxies:
       - PROXY
       - AUTO
@@ -180,8 +183,7 @@ proxy-groups:
       - SG AUTO
       - JP AUTO
       - US AUTO
-    name: GLOBAL
-    type: select
+    icon: https://testingcf.jsdelivr.net/gh/Orz-3/mini@master/Color/Global.png
 
 rules:
   - "PROCESS-NAME,subs-check.exe,DIRECT"
